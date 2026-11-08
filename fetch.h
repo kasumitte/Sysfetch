@@ -64,6 +64,8 @@ void get_env(SysInfo *data);
 
 void get_hardware(SysInfo *data);
 
+void trim_quotes(char *str);
+
 void get_IP(SysInfo *data);
 
 int build_info(SysInfo *data, char lines[][MAXLEN]);
