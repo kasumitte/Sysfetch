@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <libgen.h>
 
 typedef struct SysInfo SysInfo;
 
@@ -173,21 +174,28 @@ void formatted_time(int time_sec, char *result, size_t result_size) {
 }
 
 
-void define_system(char *osid, char *filepath) { 
-    if (strcmp(osid, "arch") == 0)            snprintf(filepath, MAXLEN, "assets/arch_logo.png");
-    else if (strcmp(osid, "debian") == 0)     snprintf(filepath, MAXLEN, "assets/debian_logo.png");
-    else if (strcmp(osid, "fedora") == 0)     snprintf(filepath, MAXLEN, "assets/fedora_logo.png");
-    else if (strcmp(osid, "ubuntu") == 0)     snprintf(filepath, MAXLEN, "assets/ubuntu_logo.png");
-    else if (strcmp(osid, "gentoo") == 0)     snprintf(filepath, MAXLEN, "assets/gentoo_logo.png");
-    else if (strcmp(osid, "linuxmint") == 0)  snprintf(filepath, MAXLEN, "assets/mint_logo.png");
+void define_system(char *osid, char *filepath) {
+    char exe_path[MAXLEN];
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    
+    if (len == -1)  return;
+    exe_path[len] = '\0';
+    char *dir_path = dirname(exe_path);
+
+    if (strcmp(osid, "arch") == 0)            snprintf(filepath, MAXLEN, "%s/../assets/arch_logo.png", dir_path);
+    else if (strcmp(osid, "debian") == 0)     snprintf(filepath, MAXLEN, "%s/../assets/debian_logo.png", dir_path);
+    else if (strcmp(osid, "fedora") == 0)     snprintf(filepath, MAXLEN, "%s/../assets/fedora_logo.png", dir_path);
+    else if (strcmp(osid, "ubuntu") == 0)     snprintf(filepath, MAXLEN, "%s/../assets/ubuntu_logo.png", dir_path);
+    else if (strcmp(osid, "gentoo") == 0)     snprintf(filepath, MAXLEN, "%s/../assets/gentoo_logo.png", dir_path);
+    else if (strcmp(osid, "linuxmint") == 0)  snprintf(filepath, MAXLEN, "%s/../assets/mint_logo.png", dir_path);
     else if (
     (strcmp(osid, "freebsd") == 0) || 
-    (strcmp(osid, "openbsd")) == 0)           snprintf(filepath, MAXLEN, "assets/openbsd_logo.png");
+    (strcmp(osid, "openbsd")) == 0)           snprintf(filepath, MAXLEN, "%s/../assets/openbsd_logo.png", dir_path);
     
-    else if (strcmp(osid, "manjaro") == 0)    snprintf(filepath, MAXLEN, "assets/manjaro_logo.png");
-    else if (strcmp(osid, "centos") == 0)     snprintf(filepath, MAXLEN, "assets/centos_logo.png");
-    else if (strcmp(osid, "nixos") == 0)      snprintf(filepath, MAXLEN, "assets/nixos_logo.png");
-    else if (strcmp(osid, "unknown") == 0)    snprintf(filepath, 1, "");
+    else if (strcmp(osid, "manjaro") == 0)    snprintf(filepath, MAXLEN, "%s/../assets/manjaro_logo.png", dir_path);
+    else if (strcmp(osid, "centos") == 0)     snprintf(filepath, MAXLEN, "%s/../assets/centos_logo.png", dir_path);
+    else if (strcmp(osid, "nixos") == 0)      snprintf(filepath, MAXLEN, "%s/../assets/nixos_logo.png", dir_path);
+    else if (strcmp(osid, "unknown") == 0)    snprintf(filepath, MAXLEN, "");
 }
 
 
@@ -434,11 +442,11 @@ void get_os_info(struct utsname *kernel, SysInfo *data, char *osid) {
                 char *start = id_line + 3;
                 start[strcspn(start, "\r\n")] = '\0';
 
-                if (start[0] == '"') {
+                if (start[0] == '"' || start[0] == '\'') {
                     start++;
                     size_t len = strlen(start);
                     
-                    if (len > 0 && start[len - 1] == '"') {
+                    if (len > 0 && (start[len - 1] == '"' || start[len - 1] == '\'')) {
                         start[len - 1] = '\0';
                     }
                 }
@@ -552,7 +560,7 @@ int main(void) {
 
     if (!proc_img(filepath, width, height, fulldata, bufsize, lines, lines_count, 0)) {
         perror(ERROR_COLOR"Couldn't open the OS logo from 'assets'."ANSI_RESET
-                "It might have happened because your system wasn't defined properly");
+                "It might have happened because your system wasn't identified properly");
         return 1;
     } 
     
@@ -560,5 +568,4 @@ int main(void) {
     free(fulldata);
     return 0;
 }
-
 
