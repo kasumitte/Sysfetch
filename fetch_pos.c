@@ -402,6 +402,21 @@ void get_user_info(SysInfo *data) {
     snprintf(data->host_user, MAXLEN, "%s@%s", usrname, hostname);
 }
 
+void trim_quotes(char *str) {
+    size_t len = strlen(str);
+    if (len == 0)   return;
+
+    if (str[len - 1] == '\n') {
+        str[len - 1] = '\0';
+        len --;
+    }
+
+    if ((str[0] == '"' && str[len - 1] == '"') || 
+        (str[0] = '\'' && str[len - 1] == '\'')) {
+        memmove(str, str + 1, len - 2);
+        str[len - 2] = '\0';
+    }
+}
 
 void get_os_info(struct utsname *kernel, SysInfo *data, char *osid) {
     /* linux kernel info */
@@ -425,12 +440,11 @@ void get_os_info(struct utsname *kernel, SysInfo *data, char *osid) {
         char id_line[MAXLEN];
 
         while (fgets(line, sizeof(line), fd)) {
-            if (sscanf(line, "PRETTY_NAME=\"%255[^\"]\"", result) == 1) {
-                strncpy(data->osname, result, sizeof(data->osname));
-                break;
-            } 
-            else if (sscanf(line, "PRETTY_NAME=%255[^\n]", result) == 1) {
-                strncpy(data->osname, result, sizeof(data->osname));
+            if (strncmp(line, "PRETTY_NAME=", 12) == 0) {
+                strncpy(data->osname, line + 12, sizeof(data->osname) - 1);
+                data->osname[sizeof(data->osname) - 1] = '\0';
+
+                trim_quotes(data->osname);
                 break;
             }
         }
